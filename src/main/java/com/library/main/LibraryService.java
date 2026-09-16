@@ -1,8 +1,11 @@
 package com.library.main;
 
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.InputMismatchException;
 import java.util.Scanner;
 
 public class LibraryService {
@@ -33,131 +36,191 @@ public class LibraryService {
             System.out.println("==================================");
 
         } catch (SQLException e) {
-            System.out.println("[Error] Failed to load dashboard stats: " + e.getMessage());
-        }
-    }
-
-    public void addBook(Scanner scanner) {
-        System.out.print("Enter Book Title: ");
-        String title = scanner.nextLine();
-        System.out.print("Enter Author Name: ");
-        String author = scanner.nextLine();
-
-        String sql = "INSERT INTO books (title, author, isAvailable, borrower_name) VALUES (?, ?, TRUE, NULL)";
-
-        try (Connection conn = Database.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, title);
-            pstmt.setString(2, author);
-            pstmt.executeUpdate();
-            System.out.println("[Success] Book added successfully!");
-        } catch (SQLException e) {
-            System.out.println("[Error] Failed to add book: " + e.getMessage());
+            System.out.println("[Error] Failed to fetch dashboard stats: " + e.getMessage());
         }
     }
 
     public void viewAllBooks() {
         String sql = "SELECT * FROM books";
-        List<Book> books = new ArrayList<>();
-
         try (Connection conn = Database.getConnection();
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(sql)) {
 
+            System.out.println("\n--- BOOK INVENTORY ---");
+            boolean found = false;
             while (rs.next()) {
-                books.add(new Book(
-                        rs.getInt("id"),
-                        rs.getString("title"),
-                        rs.getString("author"),
-                        rs.getBoolean("isAvailable"),
-                        rs.getString("borrower_name")));
+                found = true;
+                int id = rs.getInt("id");
+                String title = rs.getString("title");
+                String author = rs.getString("author");
+                boolean isAvailable = rs.getBoolean("isAvailable");
+                String borrower = rs.getString("borrower_name");
+
+                String status = isAvailable ? "Available" : "Issued to: " + borrower;
+                System.out.printf("[%d] \"%s\" by %s - Status: %s%n", id, title, author, status);
             }
+            if (!found) {
+                System.out.println("No books currently found in the system.");
+            }
+
         } catch (SQLException e) {
-            System.out.println("[Error] Failed to fetch books: " + e.getMessage());
+            System.out.println("[Error] Failed to retrieve books: " + e.getMessage());
+        }
+    }
+
+    public void addBook(Scanner scanner) {
+        System.out.print("Enter book title: ");
+        String title = scanner.nextLine().trim();
+        if (title.isEmpty()) {
+            System.out.println("[Error] Title cannot be empty.");
+            return;
         }
 
-        if (books.isEmpty()) {
-            System.out.println("\n[Info] No books found in the library.");
-        } else {
-            System.out.println("\n=== LIBRARY BOOK INVENTORY ===");
-            for (Book book : books) {
-                System.out.println(book);
-            }
+        System.out.print("Enter book author: ");
+        String author = scanner.nextLine().trim();
+        if (author.isEmpty()) {
+            System.out.println("[Error] Author cannot be empty.");
+            return;
+        }
+
+        String sql = "INSERT INTO books (title, author, isAvailable, borrower_name) VALUES (?, ?, TRUE, NULL)";
+
+        try (Connection conn = Database.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, title);
+            pstmt.setString(2, author);
+            pstmt.executeUpdate();
+
+            System.out.println("[Success] Book added successfully!");
+            AuditLogger.logAction("INSERT", "Added new book: '" + title + "' by " + author);
+
+        } catch (SQLException e) {
+            System.out.println("[Error] Failed to add book: " + e.getMessage());
         }
     }
 
     public void searchBook(Scanner scanner) {
-        System.out.print("Enter search keyword (Title): ");
-        String keyword = scanner.nextLine();
+        System.out.print("Enter title keyword to search: ");
+        String keyword = scanner.nextLine().trim();
+        if (keyword.isEmpty()) {
+            System.out.println("[Error] Search keyword cannot be empty.");
+            return;
+        }
+
         String sql = "SELECT * FROM books WHERE LOWER(title) LIKE ?";
 
-        List<Book> books = new ArrayList<>();
         try (Connection conn = Database.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
             pstmt.setString(1, "%" + keyword.toLowerCase() + "%");
             ResultSet rs = pstmt.executeQuery();
 
+            System.out.println("\n--- SEARCH RESULTS ---");
+            boolean found = false;
             while (rs.next()) {
-                books.add(new Book(
-                        rs.getInt("id"),
-                        rs.getString("title"),
-                        rs.getString("author"),
-                        rs.getBoolean("isAvailable"),
-                        rs.getString("borrower_name")));
-            }
-        } catch (SQLException e) {
-            System.out.println("[Error] Search failed: " + e.getMessage());
-        }
+                found = true;
+                int id = rs.getInt("id");
+                String title = rs.getString("title");
+                String author = rs.getString("author");
+                boolean isAvailable = rs.getBoolean("isAvailable");
+                String borrower = rs.getString("borrower_name");
 
-        if (books.isEmpty()) {
-            System.out.println("\n[Info] No books matching '" + keyword + "' found.");
-        } else {
-            System.out.println("\n=== SEARCH RESULTS ===");
-            for (Book book : books) {
-                System.out.println(book);
+                String status = isAvailable ? "Available" : "Issued to: " + borrower;
+                System.out.printf("[%d] \"%s\" by %s - Status: %s%n", id, title, author, status);
             }
+            if (!found) {
+                System.out.println("No books found matching '" + keyword + "'.");
+            }
+
+        } catch (SQLException e) {
+            System.out.println("[Error] Failed to search books: " + e.getMessage());
         }
     }
 
     public void issueBook(Scanner scanner) {
         System.out.print("Enter Book ID to issue: ");
-        int bookId = scanner.nextInt();
-        scanner.nextLine(); // consume newline
+        int bookId = getSafeIntInput(scanner);
 
-        System.out.print("Enter Borrower's Name (Student/Member): ");
-        String borrowerName = scanner.nextLine();
-
-        String checkSql = "SELECT isAvailable FROM books WHERE id = ?";
-        String updateSql = "UPDATE books SET isAvailable = FALSE, borrower_name = ? WHERE id = ? AND isAvailable = TRUE";
+        String checkSql = "SELECT title, isAvailable FROM books WHERE id = ?";
+        String updateSql = "UPDATE books SET isAvailable = FALSE, borrower_name = ? WHERE id = ?";
 
         try (Connection conn = Database.getConnection();
                 PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+
             checkStmt.setInt(1, bookId);
             ResultSet rs = checkStmt.executeQuery();
 
-            if (rs.next()) {
-                boolean available = rs.getBoolean("isAvailable");
-                if (!available) {
-                    System.out.println("[Error] This book is already issued out!");
-                    return;
-                }
-            } else {
-                System.out.println("[Error] Book ID not found.");
+            if (!rs.next()) {
+                System.out.println("[Error] Book ID " + bookId + " does not exist.");
+                return;
+            }
+
+            boolean isAvailable = rs.getBoolean("isAvailable");
+            String title = rs.getString("title");
+
+            if (!isAvailable) {
+                System.out.println("[Error] Book \"" + title + "\" is already issued out.");
+                return;
+            }
+
+            System.out.print("Enter borrower's name: ");
+            String borrowerName = scanner.nextLine().trim();
+            if (borrowerName.isEmpty()) {
+                System.out.println("[Error] Borrower name cannot be empty.");
                 return;
             }
 
             try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
                 updateStmt.setString(1, borrowerName);
                 updateStmt.setInt(2, bookId);
-                int rowsAffected = updateStmt.executeUpdate();
-                if (rowsAffected > 0) {
-                    System.out.println("[Success] Book successfully issued to " + borrowerName + "!");
-                } else {
-                    System.out.println("[Error] Could not issue the book.");
-                }
+                updateStmt.executeUpdate();
+
+                System.out.println("[Success] Book \"" + title + "\" successfully issued to " + borrowerName + ".");
+                AuditLogger.logAction("CIRCULATION", "Book ID " + bookId + " issued to " + borrowerName);
             }
+
         } catch (SQLException e) {
             System.out.println("[Error] Failed to issue book: " + e.getMessage());
+        }
+    }
+
+    public void returnBook(Scanner scanner) {
+        System.out.print("Enter Book ID to return: ");
+        int bookId = getSafeIntInput(scanner);
+
+        String checkSql = "SELECT title, isAvailable FROM books WHERE id = ?";
+        String updateSql = "UPDATE books SET isAvailable = TRUE, borrower_name = NULL WHERE id = ?";
+
+        try (Connection conn = Database.getConnection();
+                PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+
+            checkStmt.setInt(1, bookId);
+            ResultSet rs = checkStmt.executeQuery();
+
+            if (!rs.next()) {
+                System.out.println("[Error] Book ID " + bookId + " does not exist.");
+                return;
+            }
+
+            boolean isAvailable = rs.getBoolean("isAvailable");
+            String title = rs.getString("title");
+
+            if (isAvailable) {
+                System.out.println("[Error] Book \"" + title + "\" is already available in the library.");
+                return;
+            }
+
+            try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                updateStmt.setInt(1, bookId);
+                updateStmt.executeUpdate();
+
+                System.out.println("[Success] Book \"" + title + "\" has been successfully returned.");
+                AuditLogger.logAction("CIRCULATION", "Book ID " + bookId + " returned to inventory.");
+            }
+
+        } catch (SQLException e) {
+            System.out.println("[Error] Failed to return book: " + e.getMessage());
         }
     }
 
@@ -172,14 +235,12 @@ public class LibraryService {
                 Connection conn = Database.getConnection();
                 Statement stmt = conn.createStatement()) {
 
-            // Write Header
             writer.println("==========================================");
             writer.println("       OFFICIAL LIBRARY AUDIT REPORT      ");
             writer.println("==========================================");
             writer.println("Generated on: " + java.time.LocalDateTime.now());
             writer.println();
 
-            // Write Stats
             ResultSet rsTotal = stmt.executeQuery(sqlTotal);
             int total = rsTotal.next() ? rsTotal.getInt(1) : 0;
             ResultSet rsAvailable = stmt.executeQuery(sqlAvailable);
@@ -193,7 +254,6 @@ public class LibraryService {
             writer.println("Currently Issued Out  : " + issued);
             writer.println();
 
-            // Write Inventory List
             writer.println("--- COMPLETE INVENTORY ---");
             ResultSet rsBooks = stmt.executeQuery(sqlAllBooks);
             while (rsBooks.next()) {
@@ -210,31 +270,23 @@ public class LibraryService {
 
             writer.println("==========================================");
             System.out.println("[Success] Report successfully exported to '" + reportFileName + "'!");
+            AuditLogger.logAction("REPORT", "Official inventory audit report exported to file.");
 
         } catch (Exception e) {
             throw new LibraryException("Failed to generate export report: " + e.getMessage());
         }
     }
 
-    public void returnBook(Scanner scanner) {
-        System.out.print("Enter Book ID to return: ");
-        int bookId = scanner.nextInt();
-        scanner.nextLine(); // consume newline
-
-        String sql = "UPDATE books SET isAvailable = TRUE, borrower_name = NULL WHERE id = ?";
-
-        try (Connection conn = Database.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, bookId);
-            int rowsAffected = pstmt.executeUpdate();
-
-            if (rowsAffected > 0) {
-                System.out.println("[Success] Book returned successfully and is now available!");
-            } else {
-                System.out.println("[Error] Book ID not found.");
+    private int getSafeIntInput(Scanner scanner) {
+        while (true) {
+            try {
+                int input = scanner.nextInt();
+                scanner.nextLine();
+                return input;
+            } catch (InputMismatchException e) {
+                scanner.nextLine();
+                System.out.print("[Error] Invalid input. Please enter a valid number: ");
             }
-        } catch (SQLException e) {
-            System.out.println("[Error] Failed to return book: " + e.getMessage());
         }
     }
 }
