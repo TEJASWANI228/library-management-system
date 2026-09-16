@@ -1,6 +1,6 @@
-# 📚 Enterprise Java Library Management System
+# 📚 Java Library Management System
 
-Welcome to the **Enterprise Java Library Management System**! This project is a professional, industrial-strength, console-driven application built using **Java** and an embedded **H2 SQL Database**. 
+Welcome to the **Java Library Management System**! This project is a professional, industrial-strength, console-driven application built using **Java** and an embedded **H2 SQL Database**. 
 
 The goal of this project is to simulate a real-world library resource management system. It handles everything from adding books and registering members to issuing checkouts, tracking returns, logging audit trails, and running automated tests—all without requiring you to install any external database software like MySQL or PostgreSQL.
 
