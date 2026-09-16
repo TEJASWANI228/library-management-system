@@ -1,0 +1,10 @@
+# Build directories
+target/
+
+# Local H2 Database files
+library_db.*
+
+# IDE specific files
+.vscode/
+.idea/
+*.iml
