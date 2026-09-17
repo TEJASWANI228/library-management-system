@@ -100,6 +100,75 @@ public class LibraryService {
         }
     }
 
+    public void updateBook(Scanner scanner) {
+        System.out.print("Enter Book ID to update: ");
+        int bookId = getSafeIntInput(scanner);
+
+        System.out.print("Enter new book title: ");
+        String title = scanner.nextLine().trim();
+        if (title.isEmpty()) {
+            System.out.println("[Error] Title cannot be empty.");
+            return;
+        }
+
+        System.out.print("Enter new book author: ");
+        String author = scanner.nextLine().trim();
+        if (author.isEmpty()) {
+            System.out.println("[Error] Author cannot be empty.");
+            return;
+        }
+
+        String sql = "UPDATE books SET title = ?, author = ? WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, title);
+            pstmt.setString(2, author);
+            pstmt.setInt(3, bookId);
+
+            if (pstmt.executeUpdate() == 0) {
+                System.out.println("[Error] Book ID " + bookId + " does not exist.");
+                return;
+            }
+
+            System.out.println("[Success] Book updated successfully!");
+            AuditLogger.logAction("UPDATE", "Updated book ID " + bookId + " to '" + title + "' by " + author);
+        } catch (SQLException e) {
+            System.out.println("[Error] Failed to update book: " + e.getMessage());
+        }
+    }
+
+    public void deleteBook(Scanner scanner) {
+        System.out.print("Enter Book ID to delete: ");
+        int bookId = getSafeIntInput(scanner);
+
+        String selectSql = "SELECT title, isAvailable FROM books WHERE id = ?";
+        String deleteSql = "DELETE FROM books WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+                PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
+            selectStmt.setInt(1, bookId);
+            try (ResultSet rs = selectStmt.executeQuery()) {
+                if (!rs.next()) {
+                    System.out.println("[Error] Book ID " + bookId + " does not exist.");
+                    return;
+                }
+                if (!rs.getBoolean("isAvailable")) {
+                    System.out.println("[Error] Issued books must be returned before deletion.");
+                    return;
+                }
+
+                String title = rs.getString("title");
+                try (PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
+                    deleteStmt.setInt(1, bookId);
+                    deleteStmt.executeUpdate();
+                }
+                System.out.println("[Success] Book deleted successfully.");
+                AuditLogger.logAction("DELETE", "Deleted book ID " + bookId + ": '" + title + "'");
+            }
+        } catch (SQLException e) {
+            System.out.println("[Error] Failed to delete book: " + e.getMessage());
+        }
+    }
+
     public void searchBook(Scanner scanner) {
         System.out.print("Enter title keyword to search: ");
         String keyword = scanner.nextLine().trim();

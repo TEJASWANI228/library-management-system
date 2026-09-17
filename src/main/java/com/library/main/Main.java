@@ -34,11 +34,13 @@ public class Main {
             System.out.println("2. View All Books");
             System.out.println("3. Add a Book");
             System.out.println("4. Search Book by Title");
-            System.out.println("5. Issue Book (with Borrower Name)");
-            System.out.println("6. Return Book");
-            System.out.println("7. Export Inventory Report (to File)");
-            System.out.println("8. Exit");
-            System.out.print("Choose an option (1-8): ");
+            System.out.println("5. Update Book");
+            System.out.println("6. Delete Book");
+            System.out.println("7. Issue Book (with Borrower Name)");
+            System.out.println("8. Return Book");
+            System.out.println("9. Export Inventory Report (to File)");
+            System.out.println("10. Exit");
+            System.out.print("Choose an option (1-10): ");
 
             int choice = getSafeIntInput(scanner);
 
@@ -56,24 +58,30 @@ public class Main {
                     libraryService.searchBook(scanner);
                     break;
                 case 5:
-                    libraryService.issueBook(scanner);
+                    libraryService.updateBook(scanner);
                     break;
                 case 6:
-                    libraryService.returnBook(scanner);
+                    libraryService.deleteBook(scanner);
                     break;
                 case 7:
+                    libraryService.issueBook(scanner);
+                    break;
+                case 8:
+                    libraryService.returnBook(scanner);
+                    break;
+                case 9:
                     try {
                         libraryService.exportReport();
                     } catch (LibraryException e) {
                         System.out.println("[Error] " + e.getMessage());
                     }
                     break;
-                case 8:
+                case 10:
                     running = false;
                     System.out.println("Exiting application. Thank you!");
                     break;
                 default:
-                    System.out.println("[Error] Invalid choice. Please enter a number between 1 and 8.");
+                    System.out.println("[Error] Invalid choice. Please enter a number between 1 and 10.");
             }
         }
         scanner.close();

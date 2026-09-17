@@ -2,6 +2,8 @@
 
 A simple library management system built with Java, H2, HTML, CSS, and JavaScript.
 
+Project statement: [`statement.md`](statement.md)
+
 ## Live Demo
 
 [Open the live frontend](https://tejaswani228.github.io/library-management-system/)
@@ -21,6 +23,7 @@ The web app supports:
 
 - View library statistics
 - Add and search books
+- Update and delete books with circulation safety checks
 - Issue and return books
 - Store data in an embedded H2 database
 - Export inventory reports
@@ -45,6 +48,7 @@ The frontend is a dependency-free static website located in [`my-portfolio`](my-
 .github/workflows/       GitHub Pages deployment workflow
 my-portfolio/            Static frontend
 src/main/java/           Java application source
+src/test/java/           JUnit integration tests
 pom.xml                 Maven configuration
 README.md               Project documentation
 ```
@@ -62,7 +66,19 @@ Compile the project from the root directory:
 mvn clean compile
 ```
 
-Run `com.library.main.Main` from your IDE using the Maven project classpath.
+Run the application from the terminal with Maven:
+
+```bash
+mvn exec:java "-Dexec.mainClass=com.library.main.Main"
+```
+
+To run the automated tests:
+
+```bash
+mvn clean test
+```
+
+The application is interactive. Choose option `10` to exit.
 
 ## Run the Frontend Locally
 
