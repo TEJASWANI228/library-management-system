@@ -1,85 +1,151 @@
 # Library Management System
 
-A simple library management system with a Java command-line application and a browser-based library manager.
+A lightweight library management project with a Java desktop-style application and a simple browser frontend for managing books, borrowing, and returns.
 
-## Features
+## Live Demo
 
-### Java application
+The frontend is deployed on GitHub Pages:
 
-- View library dashboard statistics
-- List and search books
-- Add books
-- Issue and return books
-- Store book data in an embedded H2 database
-- Export an inventory report
-- Record audit events
+**[Open the Library Management System](https://tejaswani228.github.io/library-management-system/)**
 
-### Web application
-
-The frontend is in [`my-portfolio`](my-portfolio) and works as a static page without a build step.
+The live page lets you:
 
 - Add books through a form
 - Borrow and return books
-- Track total, available, and borrowed books
 - View available and borrowed book names
-- Search by title or author
-- Filter by category and status
-- Sort books
-- Save book state in browser `localStorage`
-- Export the current books as CSV
+- Search books by title or author
+- Filter by category and availability
+- Sort the book list
+- Export the catalog as CSV
+- Keep frontend changes in browser `localStorage`
 
-## Run the Java application
+## Project Overview
 
-Requirements:
+This repository contains two related parts.
+
+### Java application
+
+The Java application provides a menu-driven library system backed by an embedded H2 database. It supports:
+
+- Dashboard statistics
+- Book inventory management
+- Book title search
+- Adding books
+- Issuing books to borrowers
+- Returning books
+- Inventory report export
+- Audit logging
+
+### Web frontend
+
+The frontend is a dependency-free static website in [`my-portfolio`](my-portfolio). It uses HTML, CSS, and JavaScript, so it can run directly in a browser without Node.js or a build tool.
+
+The frontend currently uses mock book data and browser storage. It is deployed independently from the Java application and is ready to connect to REST endpoints in the future.
+
+## Technology Stack
+
+| Area | Technology |
+| --- | --- |
+| Backend application | Java 11+ |
+| Database | H2 embedded database |
+| Build tool | Maven |
+| Testing | JUnit 5 |
+| Frontend | HTML, CSS, JavaScript |
+| Frontend hosting | GitHub Pages |
+| Deployment | GitHub Actions |
+
+## Repository Structure
+
+```text
+LibraryApp/
+├── .github/
+│   └── workflows/
+│       └── deploy-frontend.yml
+├── my-portfolio/
+│   ├── index.html
+│   ├── script.js
+│   └── style.css
+├── src/
+│   └── main/java/com/library/main/
+│       ├── AuditLogger.java
+│       ├── Book.java
+│       ├── Database.java
+│       ├── LibraryException.java
+│       ├── LibraryService.java
+│       └── Main.java
+├── library_report.txt
+├── pom.xml
+└── README.md
+```
+
+## Run the Java Application
+
+### Requirements
 
 - Java 11 or newer
-- Maven
+- Maven 3.8 or newer
 
-From the project root:
+### Compile
+
+From the repository root:
 
 ```bash
 mvn clean compile
-mvn exec:java -Dexec.mainClass="com.library.main.Main"
 ```
 
-If the Maven exec plugin is not configured, compile the project with Maven and run `com.library.main.Main` from your IDE.
+### Run
 
-## Run the frontend
+Run `com.library.main.Main` from your IDE using the project classpath.
 
-Open [`my-portfolio/index.html`](my-portfolio/index.html) directly in a browser.
-
-The frontend currently uses mock data and browser `localStorage`. It does not yet call the Java application over HTTP. The browser data can be cleared by removing the site's local storage.
-
-## Deploy the frontend
-
-The repository includes a GitHub Actions workflow at [`.github/workflows/deploy-frontend.yml`](.github/workflows/deploy-frontend.yml). It publishes `my-portfolio` to GitHub Pages whenever changes are pushed to `main`.
-
-To enable it:
-
-1. Open the repository's **Settings** on GitHub.
-2. Select **Pages** under **Code and automation**.
-3. Set the source to **GitHub Actions**.
-4. Push to `main` or start the **Deploy library frontend** workflow manually from the **Actions** tab.
-
-The frontend will be available at:
+For IntelliJ IDEA or VS Code, import the project as a Maven project, then run the `Main` class located at:
 
 ```text
-https://tejaswani228.github.io/library-management-system/
+src/main/java/com/library/main/Main.java
 ```
 
-GitHub Pages only hosts the static frontend. The Java/H2 application requires a Java-capable host such as a VM, container service, or application platform.
+The application creates or updates the local H2 database when it starts.
 
-## Project layout
+## Run the Frontend Locally
+
+No installation is required. Open this file in a browser:
 
 ```text
-src/main/java/com/library/main/  Java application source
-my-portfolio/                    Static frontend
-library_db.mv.db                 H2 database file
-library_report.txt               Exported inventory report
-system_audit.log                 Audit log
-pom.xml                          Maven project configuration
+my-portfolio/index.html
 ```
 
-## Future integration
+For a local development server, use any static file server. For example, with Python installed:
 
-The frontend service layer is prepared to be replaced with REST calls for books, borrowing, returns, members, and fines when Spring Boot API endpoints are added.
+```bash
+python -m http.server 8080 --directory my-portfolio
+```
+
+Then open:
+
+```text
+http://localhost:8080
+```
+
+## Data Storage
+
+The Java application stores data in the local H2 database file. The browser frontend stores its book list in `localStorage` for the current browser origin.
+
+The Java backend and frontend do not currently share data automatically. Adding a REST API layer is the next step required for the deployed website to use the H2-backed Java service.
+
+## Deployment
+
+The frontend is deployed automatically by [`.github/workflows/deploy-frontend.yml`](.github/workflows/deploy-frontend.yml) whenever changes are pushed to the `main` branch.
+
+GitHub Pages hosts the static frontend only. The Java/H2 application requires a separate Java-capable host, such as a virtual machine, container platform, or application hosting service.
+
+## Future Improvements
+
+- Add Spring Boot REST endpoints for books and circulation
+- Connect the frontend service layer to the backend API
+- Add member accounts and borrowing history
+- Add due dates and fine tracking
+- Add automated frontend tests
+- Deploy the Java backend with H2 or a production database
+
+## License
+
+This project is intended for learning and demonstration purposes.
