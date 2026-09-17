@@ -50,6 +50,25 @@ Open [`my-portfolio/index.html`](my-portfolio/index.html) directly in a browser.
 
 The frontend currently uses mock data and browser `localStorage`. It does not yet call the Java application over HTTP. The browser data can be cleared by removing the site's local storage.
 
+## Deploy the frontend
+
+The repository includes a GitHub Actions workflow at [`.github/workflows/deploy-frontend.yml`](.github/workflows/deploy-frontend.yml). It publishes `my-portfolio` to GitHub Pages whenever changes are pushed to `main`.
+
+To enable it:
+
+1. Open the repository's **Settings** on GitHub.
+2. Select **Pages** under **Code and automation**.
+3. Set the source to **GitHub Actions**.
+4. Push to `main` or start the **Deploy library frontend** workflow manually from the **Actions** tab.
+
+The frontend will be available at:
+
+```text
+https://tejaswani228.github.io/library-management-system/
+```
+
+GitHub Pages only hosts the static frontend. The Java/H2 application requires a Java-capable host such as a VM, container service, or application platform.
+
 ## Project layout
 
 ```text
