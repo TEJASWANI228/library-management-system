@@ -73,7 +73,6 @@ LibraryApp/
 │       ├── LibraryException.java
 │       ├── LibraryService.java
 │       └── Main.java
-├── library_report.txt
 ├── pom.xml
 └── README.md
 ```

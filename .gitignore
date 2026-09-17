@@ -4,6 +4,10 @@ target/
 # Local H2 Database files
 library_db.*
 
+# Generated runtime output
+library_report.txt
+system_audit.log
+
 # IDE specific files
 .vscode/
 .idea/
